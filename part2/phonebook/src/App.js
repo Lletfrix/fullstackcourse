@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import Contacts from './components/Contacts';
 import Filter from './components/Filter';
 import Form from './components/Form';
+import Notification from './components/Notification'
+
 import contactService from './services/contacts'
 
 const App = () => {
@@ -11,6 +13,9 @@ const App = () => {
     const [ newName, setNewName ] = useState('');
     const [ newPhone, setNewPhone ] = useState('');
     const [ filter, setFilter ] = useState('');
+    const [ notifMsg, setNotifMsg ] = useState(null);
+    const [ errorMsg, setErrorMsg ] = useState(null);
+
     const visiblePersons = filter ? persons.filter(person => person.name.startsWith(filter)) : persons;
 
     const handlerForm = (event) => {
@@ -33,8 +38,14 @@ const App = () => {
                     setPersons(persons.map(p => p.name !== newPer.name ? p : newPer));
                     setNewName('');
                     setNewPhone('');
+                    setNotifMsg(toUpdate.name + '\'s phone updated');
+                    setTimeout(() => setNotifMsg(null), 3000);
                 })
-                .catch(() => alert('User couldn\'t be added'));
+                .catch(() => {
+                    setPersons(persons.filter(p => p.name !== toUpdate.name));
+                    setErrorMsg('Error: Information of '+toUpdate.name+' had been removed from server')
+                    setTimeout(() => setErrorMsg(null), 3000);
+                });
             return;
         }
 
@@ -44,8 +55,13 @@ const App = () => {
                 setPersons(persons.concat(newPer));
                 setNewName('');
                 setNewPhone('');
+                setNotifMsg('Added '+newPer.name);
+                setTimeout(() => setNotifMsg(null), 3000);
             })
-            .catch(() => alert('User couldn\'t be added'));
+            .catch(() => {
+                setErrorMsg('Couldn\'t add user.')
+                setTimeout(() => setErrorMsg(null), 3000);
+            });
     };
 
     const delAction = name => {
@@ -57,7 +73,11 @@ const App = () => {
             .del(toDelete.id)
             .then(
                 setPersons(persons.filter(p => p.id !== toDelete.id))
-            );
+            )
+            .catch(() => {
+                setErrorMsg('Information of '+toDelete.name+' has already been removed from server')
+                setTimeout(() => setErrorMsg(null), 3000);
+            });
     };
 
     //Fetch data from sv
@@ -68,6 +88,8 @@ const App = () => {
     // Rendering
     return (
         <div>
+            <Notification message={notifMsg}/>
+            <Notification message={errorMsg} error={true}/>
             <h2>Phonebook</h2>
             <Filter value={filter} filtfunc={setFilter}/>
             <h2>Add a new one:</h2>
