@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 
 import Contacts from './components/Contacts';
 import Filter from './components/Filter';
 import Form from './components/Form';
+import contactService from './services/contacts'
 
 const App = () => {
     // Variables and state:
@@ -16,24 +16,53 @@ const App = () => {
     const handlerForm = (event) => {
         event.preventDefault();
         const newPerson = {name : newName, number: newPhone};
-        if (persons.map(person => person.name).includes(newPerson.name)){
-            alert( newPerson.name + ' is already added to phonebook');
-            return;
-        }
+
         if (!newPerson.number || !newPerson.name){
             alert('Name and number cannot be blank');
             return;
         }
-        setPersons(persons.concat(newPerson));
-        setNewName('');
-        setNewPhone('');
+
+        if (persons.map(person => person.name).includes(newPerson.name)){
+            if (!window.confirm( newPerson.name + ' is already added to phonebook, replace old number?')){
+                return;
+            }
+            const toUpdate = persons.find(p => p.name === newPerson.name);
+            contactService
+                .update(toUpdate.id, newPerson)
+                .then(newPer => {
+                    setPersons(persons.map(p => p.name !== newPer.name ? p : newPer));
+                    setNewName('');
+                    setNewPhone('');
+                })
+                .catch(() => alert('User couldn\'t be added'));
+            return;
+        }
+
+        contactService
+            .add(newPerson)
+            .then(newPer =>{
+                setPersons(persons.concat(newPer));
+                setNewName('');
+                setNewPhone('');
+            })
+            .catch(() => alert('User couldn\'t be added'));
+    };
+
+    const delAction = name => {
+        const toDelete = persons.find(p => p.name === name);
+        if (!window.confirm('Delete '+toDelete.name+'?')){
+            return;
+        }
+        contactService
+            .del(toDelete.id)
+            .then(
+                setPersons(persons.filter(p => p.id !== toDelete.id))
+            );
     };
 
     //Fetch data from sv
     useEffect(() => {
-        axios
-            .get('http://localhost:3001/persons')
-            .then(response => setPersons(response.data));
+        contactService.getAll().then(ppl => setPersons(ppl));
     },[]);
 
     // Rendering
@@ -44,7 +73,7 @@ const App = () => {
             <h2>Add a new one:</h2>
             <Form name={newName} phone={newPhone} submit={handlerForm} namefunc={setNewName} phonefunc={setNewPhone}/>
             <h2>Numbers</h2>
-            <Contacts contacts={visiblePersons}/>
+            <Contacts contacts={visiblePersons} del={delAction}/>
         </div>
     )
 }

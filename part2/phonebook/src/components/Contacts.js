@@ -1,10 +1,17 @@
 import React from 'react';
 
-const Contact = ({name, number}) => <p>{name} | {number}</p>;
+const Contact = ({name, number, del}) => {
+    return(
+        <div>
+            {name} | {number}
+            <button onClick={() => del(name)}>delete</button>
+        </div>
+    );
+};
 
-const Contacts = ({contacts}) =>
+const Contacts = ({contacts, del}) =>
     <div>
-        {contacts.map(person => <Contact name={person.name} number={person.number} key={person.name}/>)}
+        {contacts.map(person => <Contact name={person.name} number={person.number} del={del} key={person.name}/>)}
     </div>;
 
 export default Contacts;
