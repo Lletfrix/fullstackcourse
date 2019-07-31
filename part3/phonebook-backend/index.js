@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
+const cors = require('cors');
 const app = express();
 
 let persons = [
@@ -26,10 +27,11 @@ let persons = [
   }
 ];
 
+morgan.token('body', (req, res) => JSON.stringify(req.body));
 
 app.use(bodyParser.json());
-
-morgan.token('body', (req, res) => JSON.stringify(req.body));
+app.use(express.static('build'));
+app.use(cors());
 app.use(morgan( (tokens, req, res) => {
     const logged = [
         tokens.method(req, res),
@@ -90,6 +92,6 @@ app.get('/info', (req, res) => {
     res.send('<div>'+text+'<br>'+day+'</div>');
 });
 
-port = 3001;
-app.listen(port);
-console.log('sv running on port ' + port);
+PORT = process.env.PORT || 3001;
+app.listen(PORT);
+console.log('sv running on port ' + PORT);
