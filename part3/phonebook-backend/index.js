@@ -1,4 +1,4 @@
-require('dotenv').config()
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
@@ -9,7 +9,7 @@ const Person = require('./models/person');
 const app = express();
 
 mongoose.set('useFindAndModify', false);
-morgan.token('body', (req, res) => JSON.stringify(req.body));
+morgan.token('body', (req) => JSON.stringify(req.body));
 
 app.use(express.static('build'));
 app.use(bodyParser.json());
@@ -21,7 +21,7 @@ app.use(morgan( (tokens, req, res) => {
         tokens.status(req, res),
         tokens.res(req, res, 'content-length'), '-',
         tokens['response-time'](req, res), 'ms'
-    ]
+    ];
 
     if (tokens.method(req, res) === 'POST')
         logged.push(tokens.body(req, res));
@@ -29,30 +29,25 @@ app.use(morgan( (tokens, req, res) => {
     return logged.join(' ');
 }));
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
     const body = req.body;
-    if (!body){
-        return res.status(400).json({error:'content missing'});
-    }
-    if (!body.number || !body.name){
-        return res.status(400).json({error:'name or number is missing'});
-    }
 
     const person = new Person({
         name: body.name,
         number: body.number
     });
 
-    person.save().then( savedPerson => {
-        res.json(savedPerson.toJSON());
-    });
+    person
+        .save()
+        .then(savedPerson => res.json(savedPerson.toJSON()))
+        .catch(error => next(error));
 });
 
 app.get('/api/persons', (req, res, next) => {
     Person.find({}).then(persons => {
         res.json(persons.map(p => p.toJSON()));
     })
-    .catch(error => next(error));
+        .catch(error => next(error));
 });
 
 app.get('/api/persons/:id', (req, res, next) => {
@@ -68,7 +63,7 @@ app.get('/api/persons/:id', (req, res, next) => {
 
 app.delete('/api/persons/:id', (req, res, next) => {
     const id = req.params.id;
-    Person.deleteOne({_id: id}).then(() => {
+    Person.deleteOne({ _id: id }).then(() => {
         res.status(204).end();
     }).catch(error => next(error));
 });
@@ -78,8 +73,8 @@ app.put('/api/persons/:id', (req, res, next) => {
     const person = {
         name: req.body.name,
         number: req.body.number
-    }
-    Person.findByIdAndUpdate(id, person, {new: true})
+    };
+    Person.findByIdAndUpdate(id, person, { new: true })
         .then(updatedPerson => {
             res.json(updatedPerson.toJSON());
         })
@@ -95,20 +90,22 @@ app.get('/info', (req, res) => {
 });
 
 const unknownEndpoint = (req, res) => {
-    res.status(404).send({error:'unknown endpoint'});
+    res.status(404).send({ error:'unknown endpoint' });
 };
 app.use(unknownEndpoint);
 
 const errorHandler = (error, req, res, next) => {
     console.error(error.message);
     if (error.name === 'CastError' && error.kind == 'ObjectId') {
-        return response.status(400).send({ error: 'malformed id' });
+        return res.status(400).send({ error: 'malformed id' });
+    } else if (error.name === 'ValidationError') {
+        return res.status(400).json({ error: error.message });
     }
     next(error);
 };
 app.use(errorHandler);
 
 
-PORT = process.env.PORT;
+const PORT = process.env.PORT;
 app.listen(PORT);
 console.log('sv running on port ' + PORT);

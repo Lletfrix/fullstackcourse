@@ -58,8 +58,8 @@ const App = () => {
                 setNotifMsg('Added '+newPer.name);
                 setTimeout(() => setNotifMsg(null), 3000);
             })
-            .catch(() => {
-                setErrorMsg('Couldn\'t add user.')
+            .catch((error) => {
+                setErrorMsg(error.response.data.error);
                 setTimeout(() => setErrorMsg(null), 3000);
             });
     };
